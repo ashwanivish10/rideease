@@ -1,12 +1,18 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import BookingForm, { BookingData } from "@/components/BookingForm";
 import CarCard, { CarType } from "@/components/CarCard";
 import { toast } from "sonner";
 import heroImage from "@/assets/hero-car.jpg";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
+  const [bookingCar, setBookingCar] = useState(false);
 
   const cars: CarType[] = [
     {
@@ -84,13 +90,45 @@ const Index = () => {
     document.getElementById("fleet")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleBook = (car: CarType) => {
+  const handleBook = async (car: CarType) => {
+    if (!user) {
+      toast.error("Please sign in to book a car");
+      navigate("/auth");
+      return;
+    }
+
     if (!bookingData) {
       toast.error("Please fill in the booking details first");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    toast.success(`Booking ${car.name} for ${bookingData.pickup} to ${bookingData.dropoff}`);
+
+    setBookingCar(true);
+
+    try {
+      const { error } = await supabase.from("bookings").insert({
+        user_id: user.id,
+        car_name: car.name,
+        car_category: car.category,
+        pickup_location: bookingData.pickup,
+        dropoff_location: bookingData.dropoff,
+        pickup_date: bookingData.date.toISOString().split("T")[0],
+        pickup_time: bookingData.time,
+        price_per_day: car.price,
+        total_days: 1,
+        total_price: car.price,
+        status: "pending",
+      });
+
+      if (error) throw error;
+
+      toast.success(`Successfully booked ${car.name}!`);
+      navigate("/bookings");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create booking");
+    } finally {
+      setBookingCar(false);
+    }
   };
 
   return (

@@ -1,17 +1,32 @@
 import { Button } from "@/components/ui/button";
-import { Car, Menu, User } from "lucide-react";
+import { Car, Menu, User, LogOut, History } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const navItems = [
-    { label: "Home", href: "#" },
-    { label: "Fleet", href: "#fleet" },
+    { label: "Home", href: "/" },
+    { label: "Fleet", href: "/#fleet" },
     { label: "About", href: "#about" },
     { label: "Contact", href: "#contact" },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,12 +52,34 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="hidden md:flex">
-            <User className="h-5 w-5" />
-          </Button>
-          <Button variant="hero" className="hidden md:flex">
-            Sign In
-          </Button>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hidden md:flex">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/bookings")}>
+                  <History className="mr-2 h-4 w-4" />
+                  My Bookings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="hero" className="hidden md:flex" onClick={() => navigate("/auth")}>
+              Sign In
+            </Button>
+          )}
 
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -63,9 +100,26 @@ const Header = () => {
                     {item.label}
                   </a>
                 ))}
-                <Button variant="hero" className="mt-4">
-                  Sign In
-                </Button>
+                {user ? (
+                  <>
+                    <Button variant="outline" className="mt-4" onClick={() => { navigate("/profile"); setIsOpen(false); }}>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Button>
+                    <Button variant="outline" onClick={() => { navigate("/bookings"); setIsOpen(false); }}>
+                      <History className="mr-2 h-4 w-4" />
+                      My Bookings
+                    </Button>
+                    <Button variant="destructive" onClick={() => { handleSignOut(); setIsOpen(false); }}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="hero" className="mt-4" onClick={() => { navigate("/auth"); setIsOpen(false); }}>
+                    Sign In
+                  </Button>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
